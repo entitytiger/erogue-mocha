@@ -7823,7 +7823,7 @@ static void TryApplyCustomMon(u16 species, struct Pokemon* mon)
         // If we're here, we're allowed to apply unique species
 
         // Only a chance to apply
-        if((Random() % 2) == 0)
+        if ((gRogueAdvPath.currentRoomType == ADVPATH_ROOM_LEGENDARY) || ((Random() % 2) == 0))
         {
             u32 customMonId = RogueGift_TryFindEnabledDynamicCustomMonForSpecies(species);
 
@@ -7958,7 +7958,7 @@ void Rogue_ModifyWildMon(struct Pokemon* mon)
             FillWithRoamerState(mon, GetMonData(mon, MON_DATA_LEVEL));
 
             // TODO - Consider interaction for roamer 
-            //TryApplyCustomMon(species, mon);
+           TryApplyCustomMon(species, mon);
         }
         else if(gRogueAdvPath.currentRoomType == ADVPATH_ROOM_GAMESHOW)
         {
@@ -8001,7 +8001,7 @@ void Rogue_ModifyWildMon(struct Pokemon* mon)
             u16 moveId;
 
             // TODO - Consider interaction for roamer 
-            //TryApplyCustomMon(species, mon);
+        TryApplyCustomMon(species, mon);
 
             // Replace roar with hidden power to avoid pokemon roaring itself out of battle
             for (i = 0; i < MAX_MON_MOVES; i++)
