@@ -37,13 +37,13 @@ script Rogue_Interior_BillsLab_TalkBill
 
     if(var(VAR_RUN_TUTORIAL) == 2)
     {
-        msgbox(format("Just walk right up to the PC and you'll be able to see which Unique Pokémon it is currently tracking!"))
+        msgbox(format("Just walk right up to the PC and\n you'll be able to see which\n Unique Pokémon it is currently tracking!"))
     }
     else
     {
-        msgbox(format("Hi {PLAYER}.\p Would you like to roll for new Unique Pokemon?"))         
+        msgbox(format("Hi {PLAYER}.\p Would you like to\n roll for new Unique Pokemon?"))         
         showmoneybox(0, 0)
-        msgbox(format("For ¥5000 I'll run a program to search for new ones!"))
+        msgbox(format("For ¥5000 I'll run a program\n to search for new ones!"))
         waitmessage
   
         multichoice(17, 6, YES, NO)
@@ -53,13 +53,12 @@ script Rogue_Interior_BillsLab_TalkBill
         {
         case YES
          {
-            memset(&gRogueSaveBlock->dynamicUniquePokemon[0], 0, sizeof(struct UniqueMon) * DYNAMIC_UNIQUE_MON_COUNT);
-            msgbox(format("Program is done! check the PC and you'll see new faces!"))
+       setvar(gSpecialVar_0x8004, 0)
          }
         else
-        msgbox(format("Alright, I'll be here if you change your mind!"))
+        msgbox(format("Alright, I'll be here\n if you change your mind!"))
     case MULTI_B_PRESSED:
-        msgbox(format("Alright, I'll be here if you change your mind!"))
+        msgbox(format("Alright, I'll be here\n if you change your mind!"))
 
     }
 
