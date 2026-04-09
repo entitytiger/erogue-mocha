@@ -34,7 +34,6 @@ script Rogue_Interior_BillsLab_TalkBill
 {
     lock
     faceplayer
-
     if(var(VAR_RUN_TUTORIAL) == 2)
     {
         msgbox(format("Just walk right up to the PC and\n you'll be able to see which\n Unique Pokémon it is\n currently tracking!"))
@@ -51,7 +50,7 @@ script Rogue_Interior_BillsLab_TalkBill
 
         switch(var(VAR_RESULT))
         {
-        case YES:
+        case YES
          {
        setvar(gSpecialVar_0x8004, 0)
          }
@@ -59,9 +58,7 @@ script Rogue_Interior_BillsLab_TalkBill
         msgbox(format("Alright, I'll be here\n if you change your mind!"))
     case MULTI_B_PRESSED:
         msgbox(format("Alright, I'll be here\n if you change your mind!"))
-
     }
-
     release
   }
 }
