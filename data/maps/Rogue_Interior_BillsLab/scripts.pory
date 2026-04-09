@@ -64,6 +64,7 @@ script Rogue_Interior_BillsLab_TalkBill
     }
 
     release
+  }
 }
 
 script Rogue_Interior_BillsLab_TalkPC
