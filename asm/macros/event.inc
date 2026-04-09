@@ -1366,6 +1366,11 @@
 	.byte 0xe6
 	.endm
 
+	@ Warp to the spawn point of the map
+	.macro warptospawn
+	.byte 0xf6
+	.endm
+
 	@ Checks the player's gender. Stores the result (MALE (0) or FEMALE (1)) in VAR_RESULT.
 	.macro checkplayergender
 	.byte 0xa0
@@ -2155,18 +2160,16 @@
 	.endm
 
 	@ Attempts to complete the given quest and returns the result
-	.macro multiplayerpushstatus status:req, param:req
+	.macro multiplayerpushstatus status:req
 	.byte 0xee
 	.byte \status
-	.2byte \param
 	.byte 0
 	.byte 0
 	.endm
 
-	.macro multiplayerpushstatusawait status:req, param:req, awaitCancellable:req
+	.macro multiplayerpushstatusawait status:req, awaitCancellable:req
 	.byte 0xee
 	.byte \status
-	.2byte \param
 	.byte 1
 	.byte \awaitCancellable
 	.endm

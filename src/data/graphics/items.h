@@ -685,6 +685,9 @@ const u32 gItemIconPalette_PurpleNectar[] = INCBIN_U32("graphics/items/icon_pale
 
 // Plates
 
+const u32 gItemIcon_LegendPlate[] = INCBIN_U32("graphics/items/icons/legend_plate.4bpp.lz");
+const u32 gItemIconPalette_LegendPlate[] = INCBIN_U32("graphics/items/icon_palettes/legend_plate.gbapal.lz");
+
 const u32 gItemIcon_FlamePlate[] = INCBIN_U32("graphics/items/icons/flame_plate.4bpp.lz");
 const u32 gItemIconPalette_FlamePlate[] = INCBIN_U32("graphics/items/icon_palettes/flame_plate.gbapal.lz");
 
@@ -2113,6 +2116,9 @@ const u32 gItemIconPalette_Cloud[] = INCBIN_U32("graphics/items/icons/cloud.gbap
 
 const u32 gItemIcon_GoldenSeed[] = INCBIN_U32("graphics/items/icons/rogue_golden_seed.4bpp.lz");
 const u32 gItemIconPalette_GoldenSeed[] = INCBIN_U32("graphics/items/icons/rogue_golden_seed.gbapal.lz");
+
+const u32 gItemIcon_PocketPC[] = INCBIN_U32("graphics/items/icons/pocket_pc.4bpp.lz");
+const u32 gItemIconPalette_PocketPC[] = INCBIN_U32("graphics/items/icon_palettes/pocket_pc.gbapal.lz");
 
 const u32 gItemIcon_TypeNormal[] = INCBIN_U32("graphics/items/icons/type_icon_normal.4bpp.lz");
 const u32 gItemIconPalette_TypeNormal[] = INCBIN_U32("graphics/items/icons/type_icon_normal.gbapal.lz");

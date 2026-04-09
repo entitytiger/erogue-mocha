@@ -237,7 +237,41 @@ static const struct RogueRouteEncounter sRogueRouteTable[] = {
         .dropRarity = 2,
         .wildTypeTable = { TYPE_STEEL, TYPE_ELECTRIC, TYPE_FIRE }
     },
-};
+    {
+        .mapFlags = ROUTE_FLAG_HOENN,
+        .map = ROUTE_MAP(ROGUE_ROUTE_QUICK_MAP0),
+#ifdef ROGUE_EXPANSION
+        .wildTypeTable = { TYPE_FAIRY, TYPE_GHOST, TYPE_ELECTRIC },
+#else
+        .wildTypeTable = { TYPE_GHOST, TYPE_ELECTRIC, TYPE_NORMAL },
+#endif
+    },
+    {
+        .mapFlags = ROUTE_FLAG_JOHTO,
+        .map = ROUTE_MAP(ROGUE_ROUTE_QUICK_MAP1),
+        .wildTypeTable = { TYPE_ROCK, TYPE_STEEL, TYPE_FIGHTING },
+    },
+    {
+        .mapFlags = ROUTE_FLAG_KANTO,
+        .map = ROUTE_MAP(ROGUE_ROUTE_QUICK_MAP2),
+        .wildTypeTable = { TYPE_PSYCHIC, TYPE_WATER, TYPE_DARK },
+    },
+    {
+        .mapFlags = ROUTE_FLAG_JOHTO,
+        .map = ROUTE_MAP(ROGUE_ROUTE_QUICK_MAP3),
+        .wildTypeTable = { TYPE_DRAGON, TYPE_ICE, TYPE_BUG },
+    },
+    {
+        .mapFlags = ROUTE_FLAG_SINNOH,
+        .map = ROUTE_MAP(ROGUE_ROUTE_QUICK_MAP4),
+        .wildTypeTable = { TYPE_GRASS, TYPE_GROUND, TYPE_FIRE },
+    },
+    {
+        .mapFlags = ROUTE_FLAG_HOENN,
+        .map = ROUTE_MAP(ROGUE_ROUTE_QUICK_MAP5),
+        .wildTypeTable = { TYPE_FLYING, TYPE_POISON, TYPE_NORMAL },
+    },
+}; // Ffs type limit
 
 const struct RogueRouteData gRogueRouteTable = 
 {
@@ -390,6 +424,10 @@ static const struct RogueEncounterMap sRogueLegendaryEncounters[] =
     ENCOUNTER_MAP(SPECIES_URSHIFU_RAPID_STRIKE_STYLE, ROGUE_SPECIAL_GEN8_MON),
     ENCOUNTER_MAP(SPECIES_CALYREX_ICE_RIDER, ROGUE_SPECIAL_GEN8_MON),
     ENCOUNTER_MAP(SPECIES_CALYREX_SHADOW_RIDER, ROGUE_SPECIAL_GEN8_MON),
+
+    ENCOUNTER_MAP(SPECIES_ARTICUNO_GALARIAN, ROGUE_SPECIAL_GEN8_MON),
+    ENCOUNTER_MAP(SPECIES_ZAPDOS_GALARIAN, ROGUE_SPECIAL_GEN8_MON),
+    ENCOUNTER_MAP(SPECIES_MOLTRES_GALARIAN, ROGUE_SPECIAL_GEN8_MON),
     
 #endif
 };

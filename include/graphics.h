@@ -1422,6 +1422,8 @@ extern const u32 gItemIconPalette_PinkNectar[];
 extern const u32 gItemIcon_PurpleNectar[];
 extern const u32 gItemIconPalette_PurpleNectar[];
 // Plates
+extern const u32 gItemIcon_LegendPlate[];
+extern const u32 gItemIconPalette_LegendPlate[];
 extern const u32 gItemIcon_FlamePlate[];
 extern const u32 gItemIconPalette_FlamePlate[];
 extern const u32 gItemIcon_SplashPlate[];
@@ -2365,6 +2367,8 @@ extern const u32 gItemIcon_Cloud[];
 extern const u32 gItemIconPalette_Cloud[];
 extern const u32 gItemIcon_GoldenSeed[];
 extern const u32 gItemIconPalette_GoldenSeed[];
+extern const u32 gItemIcon_PocketPC[];
+extern const u32 gItemIconPalette_PocketPC[];
 extern const u32 gItemIcon_TypeNormal[];
 extern const u32 gItemIconPalette_TypeNormal[];
 extern const u32 gItemIcon_TypeFighting[];

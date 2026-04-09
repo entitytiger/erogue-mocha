@@ -1277,29 +1277,19 @@ static bool32 TryAegiFormChange(void)
     return TRUE;
 }
 
-bool32 ProteanTryChangeType(u32 battler, u32 ability, u32 move, u32 moveType)
-{
-      if ((ability == ABILITY_PROTEAN || ability == ABILITY_LIBERO)
-         && !gDisableStructs[gBattlerAttacker].usedProteanLibero
-         && (gBattleMons[battler].type1 != moveType || gBattleMons[battler].type2 != moveType
-             || (gBattleMons[battler].type3 != moveType && gBattleMons[battler].type3 != TYPE_MYSTERY))
-         && move != MOVE_STRUGGLE
-         && !IsTerastallized(battler))
-    {
-        SET_BATTLER_TYPE(battler, moveType);
-        return TRUE;
-    }
-    return FALSE;
-}
-
 bool32 ShouldTeraShellDistortTypeMatchups(u32 move, u32 battlerDef)
 {
+    u32 moveType;
+    u32 abilityTarget = GetBattlerAbility(battlerDef);
+
+    GET_MOVE_TYPE(move, moveType);
     if (!(gBattleStruct->distortedTypeMatchups & gBitTable[battlerDef])
      && GetBattlerAbility(battlerDef) == ABILITY_TERA_SHELL
      && gBattleMons[battlerDef].species == SPECIES_TERAPAGOS_TERASTAL
      && !IS_MOVE_STATUS(move)
      && !(gMoveResultFlags & MOVE_RESULT_NO_EFFECT)
-     && gBattleMons[battlerDef].hp == gBattleMons[battlerDef].maxHP)
+     && gBattleMons[battlerDef].hp == gBattleMons[battlerDef].maxHP
+     && CalcTypeEffectivenessMultiplier(move, moveType, gBattlerAttacker, battlerDef, abilityTarget, FALSE) > UQ_4_12(0.5))
         return TRUE;
 
     return FALSE;
@@ -1310,12 +1300,95 @@ bool32 IsMoveNotAllowedInSkyBattles(u32 move)
     return ((gBattleStruct->isSkyBattle) && (gBattleMoves[gCurrentMove].skyBattleBanned));
 }
 
+
+bool32 IsBattlerNotOnlyType(u32 battler, u32 type)
+{
+    return (gBattleMons[battler].type1 != type || gBattleMons[battler].type2 != type
+             || (gBattleMons[battler].type3 != type && gBattleMons[battler].type3 != TYPE_MYSTERY));
+}
+
+bool32 ProteanTryChangeType(u32 battler, u32 ability, u32 move, u32 moveType)
+{
+      if (
+        (ability == ABILITY_PROTEAN || ability == ABILITY_LIBERO)
+         && IsBattlerNotOnlyType(battler, moveType)
+         && move != MOVE_STRUGGLE
+         && !IsTerastallized(battler))
+    {
+        SET_BATTLER_TYPE(battler, moveType);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static bool32 TryArceusFormChange(u32 moveType, u32 battler)
+{
+    u32 side = GetBattlerSide(battler);
+    u16 newspecies;
+
+    if (GET_BASE_SPECIES_ID(gBattleMons[battler].species) == SPECIES_ARCEUS)
+    {
+        if (!(gBattleMons[battler].status2 & STATUS2_TRANSFORMED)
+        /*&& gBattleMons[battler].item == ITEM_LEGEND_PLATE*/
+        && IsBattlerNotOnlyType(battler, moveType))
+        {
+            switch (moveType)
+            {
+            default:    return FALSE;
+            case TYPE_NORMAL:   newspecies = SPECIES_ARCEUS;            break;
+            case TYPE_FIGHTING: newspecies = SPECIES_ARCEUS_FIGHTING;   break;
+            case TYPE_FLYING:   newspecies = SPECIES_ARCEUS_FLYING;     break;
+            case TYPE_GROUND:   newspecies = SPECIES_ARCEUS_GROUND;     break;
+            case TYPE_ROCK:     newspecies = SPECIES_ARCEUS_ROCK;       break;
+            case TYPE_BUG:      newspecies = SPECIES_ARCEUS_BUG;        break;
+            case TYPE_GHOST:    newspecies = SPECIES_ARCEUS_GHOST;      break;
+            case TYPE_FIRE:     newspecies = SPECIES_ARCEUS_FIRE;       break;
+            case TYPE_WATER:    newspecies = SPECIES_ARCEUS_WATER;      break;
+            case TYPE_GRASS:    newspecies = SPECIES_ARCEUS_GRASS;      break;
+            case TYPE_ELECTRIC: newspecies = SPECIES_ARCEUS_ELECTRIC;   break;
+            case TYPE_ICE:      newspecies = SPECIES_ARCEUS_ICE;        break;
+            case TYPE_DRAGON:   newspecies = SPECIES_ARCEUS_DRAGON;     break;
+            case TYPE_DARK:     newspecies = SPECIES_ARCEUS_DARK;       break;
+            case TYPE_FAIRY:    newspecies = SPECIES_ARCEUS_FAIRY;      break;
+            case TYPE_PSYCHIC:  newspecies = SPECIES_ARCEUS_PSYCHIC;    break;
+            case TYPE_POISON:   newspecies = SPECIES_ARCEUS_POISON;     break;
+            case TYPE_STEEL:    newspecies = SPECIES_ARCEUS_STEEL;      break;
+            }
+            if (gBattleStruct->changedSpecies[side][gBattlerPartyIndexes[battler]] == SPECIES_NONE)
+                gBattleStruct->changedSpecies[side][gBattlerPartyIndexes[battler]] = gBattleMons[battler].species;
+            BattleScriptPushCursor();
+            gBattleMons[battler].species = newspecies;
+            gBattlescriptCurrInstr = BattleScript_AttackerFormChange;
+            
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+static inline bool32 TypeCancelledByPrimal(u32 type)
+{
+  if (!WEATHER_HAS_EFFECT)
+    return FALSE;
+  return (type == TYPE_FIRE && (gBattleWeather & B_WEATHER_RAIN_PRIMAL)) | (type == TYPE_WATER && (gBattleWeather & B_WEATHER_SUN_PRIMAL));
+}
+
 static void Cmd_attackcanceler(void)
 {
     CMD_ARGS();
 
     s32 i, moveType;
+    u32 currentEffectiveness;
+    u32 newEffectiveness;
+    u32 effectiveTypes = 0; // number of types with equal effectiveness/defensive utility for legend plate judgment
+    u32 effectiveTypesArray[19] = {0}; // array of effective types, we'll chose a member with random % effectiveTypes to select one of the candidates
+    // we need a second one to pick from the first and fill the second
+    u32 defensiveTypesArray[19] = {0}; // array of defensive types, we'll chose a member with random % effectiveTypes to select one of the candidates
+    u32 typeFoe1;
+    u32 typeFoe2;
+    u32 optimalType;
     u16 attackerAbility = GetBattlerAbility(gBattlerAttacker);
+    u16 targetAbility = GetBattlerAbility(gBattlerTarget);
     GET_MOVE_TYPE(gCurrentMove, moveType);
 
     // Weight-based moves are blocked by Dynamax.
@@ -1341,6 +1414,139 @@ static void Cmd_attackcanceler(void)
         return;
     if (AtkCanceller_UnableToUseMove(moveType))
         return;
+
+    // Start looking for the optimal judgment's type
+    if (gCurrentMove == MOVE_JUDGMENT
+    && !(gBattleMons[gBattlerAttacker].status2 & STATUS2_TRANSFORMED)
+    && gBattleMons[gBattlerAttacker].item == ITEM_LEGEND_PLATE
+    && (GET_BASE_SPECIES_ID(gBattleMons[gBattlerAttacker].species) == SPECIES_ARCEUS)
+    && !gBattleMons[gBattlerAttacker].legendPlateDone)
+    {
+        typeFoe1 = gBattleMons[gBattlerTarget].type1; typeFoe2 = gBattleMons[gBattlerTarget].type2;
+        optimalType = TYPE_NORMAL | F_DYNAMIC_TYPE_SET;
+        currentEffectiveness = CalcTypeEffectivenessMultiplier(gCurrentMove, moveType, gBattlerAttacker, gBattlerTarget,targetAbility, FALSE);
+        for (i = TYPE_NORMAL; i < TYPE_FAIRY + 1; i++)
+        {
+            // I took the liberty of checking the absorbing abilities, and make P-groundon not fuck up our world. made more sense to me
+            if (!TypeCancelledByPrimal(i)
+                && ((AbilityBattleEffects(ABILITYEFFECT_ABSORBING, gBattlerTarget, 0, ABILITYEFFECT_SIMULATION, i|F_DYNAMIC_TYPE_SET)) == 0))
+            {
+                newEffectiveness = CalcTypeEffectivenessMultiplier(gCurrentMove, i, gBattlerAttacker, gBattlerTarget, targetAbility, FALSE);
+                if (currentEffectiveness == newEffectiveness)
+                {
+                    effectiveTypesArray[effectiveTypes] = i | F_DYNAMIC_TYPE_SET; // Another candidate appended because as good as the previous one.
+                    effectiveTypes++; // one more type matches the current effectiveness, so we increase the counter
+                }
+
+                if (currentEffectiveness < newEffectiveness)
+                {
+                    currentEffectiveness = newEffectiveness; // this effectiveness is the best so far, so save it
+                    memset(effectiveTypesArray, 0, sizeof(effectiveTypesArray)); // remove all the previousous types, our new candidate is better
+                    effectiveTypesArray [0] = i | F_DYNAMIC_TYPE_SET; // first candidate so far, so start filling our array again
+                    effectiveTypes = 1; // we've beaten the previous types offensively, so only one type qualifies at this point
+                    optimalType = i | F_DYNAMIC_TYPE_SET; // at this point, 'i' is the index of the optimal type
+                }
+            }
+        }
+
+        if (effectiveTypes > 1)
+        {
+            effectiveTypes = 0; // time to check defensive utility, set the counter back to 0
+
+            // check effectiveness of the primary foe's type against our first type candidate
+            currentEffectiveness = GetTypeModifier(typeFoe1, effectiveTypesArray[0] & DYNAMIC_TYPE_MASK);
+
+            // this shouldn't be necessary because in the loop, the first iteration compares the first member of
+            // effectiveTypesArray against itself, which should start populating defensiveTypesArray. But hell. 
+            defensiveTypesArray[effectiveTypes] = effectiveTypesArray[0];
+
+            i = 0;
+            // if a member of the array is 0 or i >= TYPE_FAIRY + 1 (because typeless), we've reached the end of the array
+            while ((effectiveTypesArray[i] != 0) && (i < TYPE_FAIRY + 1))
+            {
+                newEffectiveness = GetTypeModifier(typeFoe1, effectiveTypesArray[i] & DYNAMIC_TYPE_MASK);
+                if (currentEffectiveness == newEffectiveness)
+                {
+                    defensiveTypesArray[effectiveTypes] = effectiveTypesArray[i] | F_DYNAMIC_TYPE_SET; // Another candidate appended because as good as the previous one
+                    effectiveTypes++; // one more type matches the current effectiveness, so we increase the counter
+                }
+
+                if (currentEffectiveness > newEffectiveness)
+                {
+                    currentEffectiveness = newEffectiveness; // this effectiveness is the best so far, so save it
+                    memset(defensiveTypesArray, 0, sizeof(defensiveTypesArray)); // remove all the previousous types, our new candidate is better
+                    defensiveTypesArray [0] = effectiveTypesArray[i] | F_DYNAMIC_TYPE_SET; // first candidate so far, so start filling our array again
+                    effectiveTypes = 1; // we've beaten the previous types defensively, so this counter goes back to 1
+                    optimalType = effectiveTypesArray[i] | F_DYNAMIC_TYPE_SET; // at this point, 'i' is the index of the optimal type
+                }
+                i++;
+            }
+            memcpy(effectiveTypesArray, defensiveTypesArray, sizeof(effectiveTypesArray)); // we want effectiveTypesArray to always be the reference for the end of the search
+        } 
+
+        if (effectiveTypes > 1)
+        {
+            effectiveTypes = 0; // time to check defensive utility, set the counter back to 0
+            memset(defensiveTypesArray, 0, sizeof(defensiveTypesArray));
+            // check effectiveness of the primary foe's type against our first type candidate
+            currentEffectiveness = GetTypeModifier(typeFoe2, effectiveTypesArray[0] & DYNAMIC_TYPE_MASK);
+
+            // this shouldn't be necessary because in the loop, the first iteration compares the first member of
+            // effectiveTypesArray against itself, which should start populating defensiveTypesArray. But hell. 
+            defensiveTypesArray[effectiveTypes] = effectiveTypesArray[0];
+
+            i = 0;
+            // if a member of the array is 0 or i >= TYPE_FAIRY + 1 (because typeless), we've reached the end of the array
+            while ((effectiveTypesArray[i] != 0) && (i < TYPE_FAIRY + 1))
+            {
+                newEffectiveness = GetTypeModifier(typeFoe2, effectiveTypesArray[i] & DYNAMIC_TYPE_MASK);
+                if (currentEffectiveness == newEffectiveness)
+                {
+                    defensiveTypesArray[effectiveTypes] = effectiveTypesArray[i] | F_DYNAMIC_TYPE_SET; // Another candidate appended because as good as the previous one
+                    effectiveTypes++; // one more type matches the current effectiveness, so we increase the counter
+                }
+
+                if (currentEffectiveness > newEffectiveness)
+                {
+                    currentEffectiveness = newEffectiveness; // this effectiveness is the best so far, so save it
+                    memset(defensiveTypesArray, 0, sizeof(defensiveTypesArray)); // remove all the previousous types, our new candidate is better
+                    defensiveTypesArray [0] = effectiveTypesArray[i] | F_DYNAMIC_TYPE_SET; // first candidate so far, so start filling our array again
+                    effectiveTypes = 1; // we've beaten the previous types defensively, so this counter goes back to 1
+                    optimalType = effectiveTypesArray[i] | F_DYNAMIC_TYPE_SET; // at this point, 'i' is the index of the optimal type
+                }
+                i++;
+            }
+            memcpy(effectiveTypesArray, defensiveTypesArray, sizeof(effectiveTypesArray)); // we want effectiveTypesArray to always be the reference for the end of the search
+        }
+
+        if (effectiveTypes == 1)
+        {
+        }
+        else
+        {
+            if (effectiveTypes == 0)
+            {
+                i = 0;
+                optimalType = Random() % TYPE_FAIRY;
+                while (optimalType == TYPE_MYSTERY)
+                {
+                    optimalType = Random() % TYPE_FAIRY;
+                }
+                optimalType |= F_DYNAMIC_TYPE_SET;
+                // this would happen if the foe is typeless, for example. So we'd choose amongst the 18 types randomly
+            }
+            else
+            {
+                optimalType = effectiveTypesArray[Random() % effectiveTypes] | F_DYNAMIC_TYPE_SET;
+            }
+        }
+
+        moveType = optimalType & DYNAMIC_TYPE_MASK;
+        gBattleStruct->dynamicMoveType = optimalType;
+
+    }
+    // judgment's type search is done
+
 
     if (WEATHER_HAS_EFFECT && gBattleMoves[gCurrentMove].power)
     {
@@ -1370,6 +1576,18 @@ static void Cmd_attackcanceler(void)
         gMultiHitCounter = 2;
         PREPARE_BYTE_NUMBER_BUFFER(gBattleScripting.multihitString, 1, 0)
         return;
+    }
+
+    // If arceus can transform using judgment, it will
+    if (gCurrentMove == MOVE_JUDGMENT && !gBattleMons[gBattlerAttacker].legendPlateDone 
+    && !(gBattleMons[gBattlerAttacker].status2 & STATUS2_TRANSFORMED)
+    && gBattleMons[gBattlerAttacker].item == ITEM_LEGEND_PLATE)
+    {
+        gBattleMons[gBattlerAttacker].legendPlateDone = TRUE;
+        if (TryArceusFormChange(moveType, gBattlerAttacker))
+        {
+            return;
+        }
     }
 
     // Check Protean activation.
@@ -2144,12 +2362,13 @@ static void Cmd_adjustdamage(void)
 
     if (DoesSubstituteBlockMove(gBattlerAttacker, gBattlerTarget, gCurrentMove))
         goto END;
-    if (DoesDisguiseBlockMove(gBattlerAttacker, gBattlerTarget, gCurrentMove))
+    if (DoesDisguiseBlockMove(gBattlerTarget, gCurrentMove))
     {
         gBattleStruct->enduredDamage |= gBitTable[gBattlerTarget];
         goto END;
     }
-    if (GetBattlerAbility(gBattlerTarget) == ABILITY_ICE_FACE && IS_MOVE_PHYSICAL(gCurrentMove) && gBattleMons[gBattlerTarget].species == SPECIES_EISCUE)
+    if (GetBattlerAbility(gBattlerTarget) == ABILITY_ICE_FACE && IS_MOVE_PHYSICAL(gCurrentMove) && gBattleMons[gBattlerTarget].species == SPECIES_EISCUE
+        && !(gBattleMons[gBattlerTarget].status2 & STATUS2_TRANSFORMED))
     {
         // Damage deals typeless 0 HP.
         gMoveResultFlags &= ~(MOVE_RESULT_SUPER_EFFECTIVE | MOVE_RESULT_NOT_VERY_EFFECTIVE);
@@ -2405,7 +2624,7 @@ static void Cmd_healthbarupdate(void)
         {
             PrepareStringBattle(STRINGID_SUBSTITUTEDAMAGED, battler);
         }
-        else if (!DoesDisguiseBlockMove(gBattlerAttacker, battler, gCurrentMove))
+        else if (!DoesDisguiseBlockMove(battler, gCurrentMove))
         {
             s16 healthValue = min(gBattleMoveDamage, 10000); // Max damage (10000) not present in R/S, ensures that huge damage values don't change sign
 
@@ -2458,7 +2677,7 @@ static void Cmd_datahpupdate(void)
                 return;
             }
         }
-        else if (DoesDisguiseBlockMove(gBattlerAttacker, battler, gCurrentMove))
+        else if (DoesDisguiseBlockMove(battler, gCurrentMove))
         {
             // TODO: Convert this to a proper FORM_CHANGE type.
             u32 side = GetBattlerSide(battler);
@@ -6014,19 +6233,20 @@ static void Cmd_moveend(void)
             if (!(gMoveResultFlags & MOVE_RESULT_NO_EFFECT)
             && !(gHitMarker & HITMARKER_UNABLE_TO_USE_MOVE)
             && gMultiHitCounter
-            && !(gCurrentMove == MOVE_PRESENT && gBattleStruct->presentBasePower == 0)) // Silly edge case
+            && !(gBattleMoves[gCurrentMove].effect == EFFECT_PRESENT && gBattleStruct->presentBasePower == 0)) // Silly edge case
             {
+                gMultiHitCounter--;
+
                 gBattleScripting.multihitString[4]++;
-                if (--gMultiHitCounter == 0)
+                if (gMultiHitCounter == 0 || !gBattleMons[gBattlerTarget].hp)
                 {
+                    BattleScriptPushCursor();
                     if (gBattleMoves[gCurrentMove].argument == MOVE_EFFECT_SCALE_SHOT && !NoAliveMonsForEitherParty())
                     {
-                        BattleScriptPush(gBattlescriptCurrInstr + 1);
                         gBattlescriptCurrInstr = BattleScript_DefDownSpeedUp;
                     }
-
-                    BattleScriptPushCursor();
-                    gBattlescriptCurrInstr = BattleScript_MultiHitPrintStrings;
+                    else
+                        gBattlescriptCurrInstr = BattleScript_MultiHitPrintStrings;
                     effect = TRUE;
                 }
                 else
@@ -6172,6 +6392,19 @@ static void Cmd_moveend(void)
                 effect = TRUE;
             gBattleScripting.moveendState++;
             break;
+        case MOVEEND_SPREAD_MOVE_WITH_EFFECT:
+            if (IsBattlerAlive(gBattlerAttacker)
+                && ( (gBattleMoves[gCurrentMove].target == MOVE_TARGET_BOTH) || (gBattleMoves[gCurrentMove].target == MOVE_TARGET_FOES_AND_ALLY) )
+                && gBattleMoves[gCurrentMove].spreadMoveAndEffect
+                && (gSpecialStatuses[gBattlerAttacker].damagedMons)
+                && !(gHitMarker & HITMARKER_UNABLE_TO_USE_MOVE)) // needless, since we check which battler was hit. Safety net I guess
+                {
+                    BattleScriptPushCursor();
+                    gBattlescriptCurrInstr = gBattleMoves[gCurrentMove].argument2;
+                    effect = TRUE;
+                }
+            gBattleScripting.moveendState++;
+            break;
         case MOVEEND_PICKPOCKET:
             if (IsBattlerAlive(gBattlerAttacker)
               && gBattleMons[gBattlerAttacker].item != ITEM_NONE        // Attacker must be holding an item
@@ -6303,7 +6536,11 @@ static void Cmd_moveend(void)
               && (gMoveResultFlags & MOVE_RESULT_NO_EFFECT)         // And it is unusable
               && (gBattleMons[gBattlerAttacker].status2 & STATUS2_LOCK_CONFUSE) != STATUS2_LOCK_CONFUSE_TURN(1))  // And won't end this turn
                 CancelMultiTurnMoves(gBattlerAttacker); // Cancel it
-
+            
+            for (i = 0; i < gBattlersCount; i++)
+            {
+                gBattleMons[i].legendPlateDone = FALSE;
+            }
             gBattleStruct->targetsDone[gBattlerAttacker] = 0;
             gProtectStructs[gBattlerAttacker].usesBouncedMove = FALSE;
             gProtectStructs[gBattlerAttacker].targetAffected = FALSE;
@@ -6403,6 +6640,7 @@ static void Cmd_switchindataupdate(void)
     for (i = 0; i < sizeof(struct BattlePokemon); i++)
         monData[i] = gBattleResources->bufferB[battler][4 + i];
 
+    gBattleMons[battler].legendPlateDone = FALSE;
     gBattleMons[battler].type1 = gSpeciesInfo[gBattleMons[battler].species].types[0];
     gBattleMons[battler].type2 = gSpeciesInfo[gBattleMons[battler].species].types[1];
     gBattleMons[battler].type3 = TYPE_MYSTERY;
@@ -6924,8 +7162,12 @@ static void Cmd_openpartyscreen(void)
                 if (gAbsentBattlerFlags & gBitTable[battlerOpposite])
                     battlerOpposite ^= BIT_FLANK;
 
-                BtlController_EmitLinkStandbyMsg(battlerOpposite, BUFFER_A, LINK_STANDBY_MSG_ONLY, FALSE);
-                MarkBattlerForControllerExec(battlerOpposite);
+                // Make sure we're checking a valid battler. In edge case scenarios - battler could be absent and battlerOpposite would become a non-existent one softlocking the game.
+                if (battlerOpposite < gBattlersCount)
+                {
+                    BtlController_EmitLinkStandbyMsg(battlerOpposite, BUFFER_A, LINK_STANDBY_MSG_ONLY, FALSE);
+                    MarkBattlerForControllerExec(battlerOpposite);
+                }
             }
         }
     }
@@ -12590,9 +12832,14 @@ static void Cmd_setsubstitute(void)
     CMD_ARGS();
 
     u32 factor = gBattleMoves[gCurrentMove].effect == EFFECT_SHED_TAIL ? 2 : 4;
-    u32 hp = GetNonDynamaxMaxHP(gBattlerAttacker) / factor;
+    u32 hp;
 
-    if (GetNonDynamaxMaxHP(gBattlerAttacker) / factor == 0)
+    if (factor == 2)
+        hp = (GetNonDynamaxMaxHP(gBattlerAttacker)+1) / factor; // shed tail rounds up
+    else
+        hp = GetNonDynamaxMaxHP(gBattlerAttacker) / factor; // one bit value will only work for Pokémon which max hp can go to 1020(which is more than possible in games // kleen what about dyna chansey?
+
+    if (hp == 0)
         hp = 1;
 
     if (gBattleMons[gBattlerAttacker].hp <= hp)
@@ -12602,7 +12849,8 @@ static void Cmd_setsubstitute(void)
     }
     else
     {
-        gBattleMoveDamage = GetNonDynamaxMaxHP(gBattlerAttacker) / factor; // one bit value will only work for Pokémon which max hp can go to 1020(which is more than possible in games)
+        gBattleMoveDamage = hp;
+
         if (gBattleMoveDamage == 0)
             gBattleMoveDamage = 1;
 
@@ -14572,10 +14820,18 @@ static void Cmd_switchoutabilities(void)
 {
     CMD_ARGS(u8 battler);
 
+    u32 speciesArceus = SPECIES_ARCEUS;
     u32 battler = GetBattlerForBattleScript(cmd->battler);
+    struct Pokemon *indexMon = GetBattlerParty(battler);
 
     // Undo dynamax here to ensure we reset the HP correctly
     UndoDynamax(battler);
+
+    // legend plate arceus reverts back to normal when switching out
+    if (!(gBattleMons[battler].status2 & STATUS2_TRANSFORMED)
+    && gBattleMons[battler].item == ITEM_LEGEND_PLATE
+    && (GET_BASE_SPECIES_ID(gBattleMons[battler].species) == SPECIES_ARCEUS))
+        SetMonData(indexMon, MON_DATA_SPECIES, &speciesArceus);
 
     if (gBattleMons[battler].ability == ABILITY_NEUTRALIZING_GAS)
     {
@@ -14754,6 +15010,8 @@ static void Cmd_pickup(void)
                     if (rand < percentTotal)
                     {
                         SetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM, &sPickupTable[j].itemId);
+                        StringCopy(gStringVar1, ItemId_GetName(sPickupTable[j].itemId));
+                        Rogue_PushPopup_MonPickUp(i);
                         break;
                     }
                 }
@@ -14767,6 +15025,8 @@ static void Cmd_pickup(void)
                 {
                     heldItem = ITEM_HONEY;
                     SetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM, &heldItem);
+                    StringCopy(gStringVar1, ItemId_GetName(heldItem));
+                    Rogue_PushPopup_MonGatheredHoney(i);
                 }
             }
             #if P_SHUCKLE_BERRY_JUICE == GEN_2
@@ -14776,6 +15036,8 @@ static void Cmd_pickup(void)
             {
                 heldItem = ITEM_BERRY_JUICE;
                 SetMonData(&gPlayerParty[i], MON_DATA_HELD_ITEM, &heldItem);
+                StringCopy(gStringVar1, ItemId_GetName(heldItem));
+                Rogue_PushPopup_MonProducedBerryJuice(i);
             }
             #endif
         }
@@ -14862,13 +15124,12 @@ bool32 DoesSubstituteBlockMove(u32 battlerAtk, u32 battlerDef, u32 move)
         return TRUE;
 }
 
-bool32 DoesDisguiseBlockMove(u32 battlerAtk, u32 battlerDef, u32 move)
+bool32 DoesDisguiseBlockMove(u32 battler, u32 move)
 {
-    if (gBattleMons[battlerDef].species != SPECIES_MIMIKYU_DISGUISED
-        || gBattleMons[battlerDef].status2 & STATUS2_TRANSFORMED
-        || IS_MOVE_STATUS(move)
-        || gHitMarker & HITMARKER_IGNORE_DISGUISE
-        || GetBattlerAbility(battlerDef) != ABILITY_DISGUISE)
+    if (!(gBattleMons[battler].species == SPECIES_MIMIKYU_DISGUISED)
+        || gBattleMons[battler].status2 & STATUS2_TRANSFORMED
+        || (!gProtectStructs[battler].confusionSelfDmg && (IS_MOVE_STATUS(move) || gHitMarker & HITMARKER_PASSIVE_DAMAGE))
+        || GetBattlerAbility(battler) != ABILITY_DISGUISE)
         return FALSE;
     else
         return TRUE;

@@ -1429,6 +1429,11 @@ static void SwapPartyPokemon(struct Pokemon *mon1, struct Pokemon *mon2)
 static void ReleasePartyPokemon(u8 slot, bool8 compactPartySlots)
 {
     RemoveMonAtSlot(slot, TRUE, compactPartySlots);
+
+    if(gMain.inBattle)
+    {
+        gBattleStruct->changedSpecies[B_SIDE_PLAYER][GetPartyIdFromBattlePartyId(slot)] = SPECIES_NONE;
+    }
 }
 
 static void Task_ClosePartyMenu(u8 taskId)
@@ -5391,7 +5396,7 @@ static u8 MintItemToNature(u16 item)
 
 void Task_NatureMint(u8 taskId)
 {
-    static const u8 askText[] = _("Would you like to change {STR_VAR_1}'s\nnature to to {STR_VAR_2}?");
+    static const u8 askText[] = _("Would you like to change {STR_VAR_1}'s\nnature to {STR_VAR_2}?");
     static const u8 doneText[] = _("{STR_VAR_1}'s nature became\n{STR_VAR_2}!{PAUSE_UNTIL_PRESS}");
 
     s16 *data = gTasks[taskId].data;
@@ -5540,7 +5545,7 @@ static u8 TeraShardItemToType(u16 item)
 
 void Task_TeraShard(u8 taskId)
 {
-    static const u8 askText[] = _("Would you like to change {STR_VAR_1}'s\nTera Type to to {STR_VAR_2}?");
+    static const u8 askText[] = _("Would you like to change {STR_VAR_1}'s\nTera Type to {STR_VAR_2}?");
     static const u8 doneText[] = _("{STR_VAR_1}'s Tera Type became\n{STR_VAR_2}!{PAUSE_UNTIL_PRESS}");
 
     s16 *data = gTasks[taskId].data;

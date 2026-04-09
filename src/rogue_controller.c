@@ -277,13 +277,22 @@ bool8 Rogue_RollShinyState(u8 shinyRoll)
     // Intentionally don't see shiny state
     u16 shinyOdds = Rogue_GetShinyOdds(shinyRoll);
     u16 rngValue = Random();
+
+    if (RoguePokedex_IsSpeciesLegendary(GetWildChainSpecies()))
+    {
+        shinyOdds = GetEncounterChainShinyOdds(GetWildChainCount());
+    }
     return shinyOdds == 0 ? FALSE : (rngValue % shinyOdds) == 0;
 }
 
 
-static u16 GetEncounterChainShinyOdds(u8 count)
+u16 GetEncounterChainShinyOdds(u8 count)
 {
     u16 baseOdds = Rogue_GetShinyOdds(SHINY_ROLL_DYNAMIC);
+    if (RoguePokedex_IsSpeciesLegendary(GetWildChainSpecies()))
+    {
+        baseOdds = Rogue_GetShinyOdds(SHINY_ROLL_STATIC);
+    }
 
     // By the time we reach 48 encounters, we want to be at max odds
     // Don't start increasing shiny rate until we pass 4 encounters
@@ -293,9 +302,20 @@ static u16 GetEncounterChainShinyOdds(u8 count)
     }
     else
     {
-        u16 range = ((VarGet(VAR_ROGUE_ACTIVE_POKEBLOCK) == ITEM_POKEBLOCK_SHINY) ? 24 : 48) - 4;
+        u16 range;
+        u16 targetOdds;
+        if (RoguePokedex_IsSpeciesLegendary(GetWildChainSpecies()))
+        {
+            range = 100 - 4; // Can't use pokeblock for this
+            targetOdds = 1; // Guaranteed at max chain
+        }
+        else
+        {
+            range = ((VarGet(VAR_ROGUE_ACTIVE_POKEBLOCK) == ITEM_POKEBLOCK_SHINY) ? 24 : 48) - 4;
+            targetOdds = 16;
+        }
+
         u16 t = min(count - 4, range);
-        u16 targetOdds = 16;
 
         return (targetOdds * t + baseOdds * (range - t)) / range;
     }
@@ -2287,16 +2307,16 @@ bool8 Rogue_IsItemEnabled(u16 itemId)
                 // Specific held items which don't trigger form changes, so won't be caught by the logic below
                 // we don't want unless the mon is avaliable
                 case ITEM_SOUL_DEW:
-                    return Query_IsSpeciesEnabled(SPECIES_LATIAS) || Query_IsSpeciesEnabled(SPECIES_LATIOS);
+                    return Query_IsSpeciesEnabledForceDexChecking(SPECIES_LATIAS) || Query_IsSpeciesEnabledForceDexChecking(SPECIES_LATIOS);
 
                 case ITEM_ADAMANT_ORB:
-                    return Query_IsSpeciesEnabled(SPECIES_DIALGA);
+                    return Query_IsSpeciesEnabledForceDexChecking(SPECIES_DIALGA);
 
                 case ITEM_LUSTROUS_ORB:
-                    return Query_IsSpeciesEnabled(SPECIES_PALKIA);
+                    return Query_IsSpeciesEnabledForceDexChecking(SPECIES_PALKIA);
 
                 case ITEM_GRISEOUS_ORB:
-                    return Query_IsSpeciesEnabled(SPECIES_GIRATINA);
+                    return Query_IsSpeciesEnabledForceDexChecking(SPECIES_GIRATINA);
 #endif
             }
         }
@@ -2717,6 +2737,16 @@ u16 Rogue_MiniMenuHeight(void)
         return Debug_MiniMenuHeight();
 #endif
 
+    if(Rogue_IsRunActive() && gSaveBlock2Ptr->optionsShowMoney == OPTIONS_SHOWMONEY_ON)
+    {
+        ++height;
+    }
+
+    if(Rogue_IsCatchingContestActive())
+    {
+        ++height;
+    }
+
     if(GetSafariZoneFlag())
     {
         height = 3;
@@ -2737,6 +2767,8 @@ extern const u8 gText_StatusBadges[];
 extern const u8 gText_StatusScore[];
 extern const u8 gText_StatusTimer[];
 extern const u8 gText_StatusClock[];
+extern const u8 gText_Status_SpawnsCountdown[];
+extern const u8 gText_Status_Money[];
 extern const u8 gText_StatusSeasonSpring[];
 extern const u8 gText_StatusSeasonSummer[];
 extern const u8 gText_StatusSeasonAutumn[];
@@ -2789,6 +2821,24 @@ u8* Rogue_GetMiniMenuContent(void)
         ConvertIntToDecimalStringN(gStringVar1, Rogue_GetCurrentDifficulty(), STR_CONV_MODE_RIGHT_ALIGN, 4);
         StringExpandPlaceholders(gStringVar3, gText_StatusBadges);
         strPointer = StringAppend(strPointer, gStringVar3);
+
+        // Catching Contest "Timer"
+        if(Rogue_IsCatchingContestActive())
+        {
+            ConvertIntToDecimalStringN(gStringVar1, gRogueLocal.catchingContest.spawnsRemaining, STR_CONV_MODE_LEFT_ALIGN, 4);
+            StringExpandPlaceholders(gStringVar3, gText_Status_SpawnsCountdown);
+            strPointer = StringAppend(strPointer, gStringVar3);
+        }
+
+        // Money
+        if(gSaveBlock2Ptr->optionsShowMoney == OPTIONS_SHOWMONEY_ON)
+        {
+            u32 playerMoney = GetMoney(&gSaveBlock1Ptr->money);
+            ConvertIntToDecimalStringN(gStringVar1, playerMoney, STR_CONV_MODE_LEFT_ALIGN, 6);
+            StringExpandPlaceholders(gStringVar2, gText_Status_Money);
+            strPointer = StringAppend(strPointer, gStringVar2);
+        }
+
     }
 
     // Score
@@ -3209,11 +3259,19 @@ extern const u8 Rogue_Ridemon_PlayerIsTrapped[];
 
 void Rogue_NotifySaveVersionUpdated(u16 fromNumber, u16 toNumber)
 {
+    u32 i;
+
     if(Rogue_IsRunActive())
         gRogueLocal.hasSaveWarningPending = TRUE;
     else
         gRogueLocal.hasVersionUpdateMsgPending = TRUE;
 
+    // Clear saved adventures
+    for(i = 0; i < ARRAY_COUNT(gRogueSaveBlock->adventureReplay); ++i)
+        gRogueSaveBlock->adventureReplay[i].isValid = FALSE;
+
+    FlagClear(FLAG_ROGUE_ADVENTURE_REPLAY_ACTIVE);
+    
     // TODO - Hook up warnings here??
     //if(IsPreReleaseCompatVersion(gSaveBlock1Ptr->rogueCompatVersion))
     //    FlagSet(FLAG_ROGUE_PRE_RELEASE_COMPAT_WARNING);
@@ -3760,19 +3818,25 @@ u16 Rogue_PostRunRewardLvls()
 
             for(i = 0; i < maxSlots; ++i)
             {
-                struct BoxPokemon* mon = Rogue_GetDaycareBoxMon(i);
+                struct BoxPokemon* boxMon = Rogue_GetDaycareBoxMon(i);
+                struct Pokemon* tempMon = &gEnemyParty[PARTY_SIZE - 1];
+
+                BoxMonToMon(boxMon, tempMon);
 
                 // Award levels
                 for(j = 0; j < daycareLvls; ++j)
                 {
-                    if(GetBoxMonData(mon, MON_DATA_SPECIES) != SPECIES_NONE && GetBoxMonData(mon, MON_DATA_LEVEL) != MAX_LEVEL)
+                    if(GetMonData(tempMon, MON_DATA_SPECIES) != SPECIES_NONE && GetMonData(tempMon, MON_DATA_LEVEL) != MAX_LEVEL)
                     {
-                        exp = Rogue_ModifyExperienceTables(gRogueSpeciesInfo[GetBoxMonData(mon, MON_DATA_SPECIES, NULL)].growthRate, GetBoxMonData(mon, MON_DATA_LEVEL, NULL) + 1);
-                        SetBoxMonData(mon, MON_DATA_EXP, &exp);
+                        exp = Rogue_ModifyExperienceTables(gRogueSpeciesInfo[GetMonData(tempMon, MON_DATA_SPECIES, NULL)].growthRate, GetMonData(tempMon, MON_DATA_LEVEL, NULL) + 1);
+                        SetMonData(tempMon, MON_DATA_EXP, &exp);
+                        CalculateMonStats(tempMon);
                     }
                     
                     // don't give friendship for daycare mons
                 }
+
+                CopyMon(boxMon, &tempMon->box, sizeof(struct BoxPokemon));
             }
         }
     }
@@ -3782,34 +3846,49 @@ u16 Rogue_PostRunRewardLvls()
 
 u16 Rogue_PostRunRewardMoney()
 {
-    u16 amount = 0;
+    u32 amount = 0;
+    u32 total = 0;
 
     if(gRogueRun.enteredRoomCounter > 1)
     {
         u16 i = gRogueRun.victoryLapTotalWins + gRogueRun.enteredRoomCounter - 1;
 
-        switch (Rogue_GetDifficultyRewardLevel())
-        {
-        case DIFFICULTY_LEVEL_EASY:
-            amount = i * 200;
-            break;
-
-        case DIFFICULTY_LEVEL_AVERAGE:
-            amount = i * 250;
-            break;
-
-        case DIFFICULTY_LEVEL_HARD:
-            amount = i * 300;
-            break;
-        
-        case DIFFICULTY_LEVEL_BRUTAL:
-            amount = i * 350;
-            break;
+        if(gSaveBlock2Ptr->optionsDifficultyRewardMode == OPTIONS_DIFFICULTY_REWARD_MODE_MULTIPLIER)
+        {  
+            float multiplier = Rogue_CalculateRewardMultiplier() / 10.0f;
+            u8 base = 200;
+            amount = base + (base * multiplier) + (base * multiplier * i);
         }
+
+        else
+        {
+            switch (Rogue_GetDifficultyRewardLevel())
+            {
+                case DIFFICULTY_LEVEL_EASY:
+                    amount = 200;
+                    break;
+
+                case DIFFICULTY_LEVEL_AVERAGE:
+                    amount = 250;
+                    break;
+
+                case DIFFICULTY_LEVEL_HARD:
+                    amount = 300;
+                    break;
+                
+                case DIFFICULTY_LEVEL_BRUTAL:
+                    amount = 350;
+                    break;
+            }
+        }
+        if (gSaveBlock2Ptr->optionsDifficultyRewardMode == OPTIONS_DIFFICULTY_REWARD_MODE_MULTIPLIER)
+            total = amount;
+        else
+            total = (7 * gRogueRun.victoryLapTotalWins * amount) / 6 + amount * (gRogueRun.enteredRoomCounter - 1);
     }
 
-    AddMoney(&gSaveBlock1Ptr->money, amount);
-    return amount;
+    AddMoney(&gSaveBlock1Ptr->money, total);
+    return total;
 }
 
 static struct Pokemon* GetLabMon(u8 slot)
@@ -3946,6 +4025,7 @@ static void BeginRogueRun_ModifyParty(void)
             u16 species = GetMonData(&gPlayerParty[i], MON_DATA_SPECIES);
             if(species != SPECIES_NONE)
             {
+                temp = 0;
                 SetMonData(&gPlayerParty[i], MON_DATA_HP_EV, &temp);
                 SetMonData(&gPlayerParty[i], MON_DATA_ATK_EV, &temp);
                 SetMonData(&gPlayerParty[i], MON_DATA_DEF_EV, &temp);
@@ -3990,6 +4070,14 @@ static void BeginRogueRun_ModifyParty(void)
                 u32 exp = Rogue_ModifyExperienceTables(gRogueSpeciesInfo[species].growthRate, STARTER_MON_LEVEL);
                 SetBoxMonData(boxMon, MON_DATA_EXP, &exp);
                 
+                temp = 0;
+                SetBoxMonData(boxMon, MON_DATA_HP_EV, &temp);
+                SetBoxMonData(boxMon, MON_DATA_ATK_EV, &temp);
+                SetBoxMonData(boxMon, MON_DATA_DEF_EV, &temp);
+                SetBoxMonData(boxMon, MON_DATA_SPEED_EV, &temp);
+                SetBoxMonData(boxMon, MON_DATA_SPATK_EV, &temp);
+                SetBoxMonData(boxMon, MON_DATA_SPDEF_EV, &temp);
+
                 // Adjust item
                 temp = GetBoxMonData(boxMon, MON_DATA_HELD_ITEM);
                 if(!CanBringInHeldItem(temp))
@@ -4035,7 +4123,7 @@ static void BeginRogueRun_ConsiderItems(void)
 
         for(species = SPECIES_NONE + 1; species < NUM_SPECIES; ++species)
         {
-            if(Query_IsSpeciesEnabled(species))
+            if(Query_IsSpeciesEnabledForceDexChecking(species))
             {
                 evoCount = Rogue_GetMaxEvolutionCount(species);
 
@@ -4065,7 +4153,7 @@ static void BeginRogueRun_ConsiderItems(void)
 
         for (species = SPECIES_NONE + 1; species < NUM_SPECIES; ++species)
         {
-            if(Query_IsSpeciesEnabled(species))
+            if(Query_IsSpeciesEnabledForceDexChecking(species))
             {
                 for (e = 0; TRUE; ++e)
                 {
@@ -4200,19 +4288,17 @@ static void BeginRogueRun(void)
     {
         struct AdventureReplay const* replay = &gRogueSaveBlock->adventureReplay[ROGUE_ADVENTURE_REPLAY_REMEMBERED];
 
-        if(FlagGet(FLAG_ROGUE_ADVENTURE_REPLAY_ACTIVE) && replay->isValid)
+        if(RogueHub_HasUpgrade(HUB_UPGRADE_ADVENTURE_ENTRANCE_ADVENTURE_REPLAY) && FlagGet(FLAG_ROGUE_ADVENTURE_REPLAY_ACTIVE) && replay->isValid)
         {
             gRogueRun.baseSeed = replay->baseSeed;
             memcpy(&gRogueSaveBlock->difficultyConfig, &replay->difficultyConfig, sizeof(gRogueSaveBlock->difficultyConfig));
 
             Rogue_PushPopup_AdventureReplay();
-
-            // TODO - Ban challenges
-            // ACTUALLY DO THIS BEFORE FORGET
         }
         else
         {
             gRogueRun.baseSeed = Random();
+            FlagClear(FLAG_ROGUE_ADVENTURE_REPLAY_ACTIVE);
         }
     }
 
@@ -4435,7 +4521,7 @@ static void EndRogueRun(void)
     RogueHub_UpdateWanderMons();
 }
 
-static u16 SelectLegendarySpecies(u8 legendId)
+u16 SelectLegendarySpecies(u8 legendId)
 {
     u16 i;
     u16 species;
@@ -4447,7 +4533,7 @@ static u16 SelectLegendarySpecies(u8 legendId)
     {
         species = gRogueLegendaryEncounterInfo.mapTable[i].encounterId;
 
-        if(Query_IsSpeciesEnabled(species))
+        if(Query_IsSpeciesEnabledForceDexChecking(species))
             RogueMiscQuery_EditElement(QUERY_FUNC_INCLUDE, species);
     }
 
@@ -4826,6 +4912,12 @@ static u8 UNUSED RandomMonType(u16 seedFlag)
 
 static u8 WildDenEncounter_CalculateWeight(u16 index, u16 species, void* data)
 {
+    if(RoguePokedex_IsSpeciesParadox(species))
+    {
+        if(Rogue_GetCurrentDifficulty() < ROGUE_GYM_START_DIFFICULTY + 2)
+            return 0;
+    }
+
     if(IsRareWeightedSpecies(species))
     {
         // Rare species become more common into late game
@@ -4999,10 +5091,37 @@ static u8 SelectRouteRoom_CalculateWeight(u16 index, u16 routeId, void* data, bo
     u16 currentSeed = difficulty % roomDelay;
     u16 roomSeed = (gRogueRun.baseSeed * 2135 ^ (13890 * routeId)) % roomDelay;
 
-    if(HistoryBufferContains(&gRogueAdvPath.routeHistoryBuffer[0], ARRAY_COUNT(gRogueAdvPath.routeHistoryBuffer), routeId))
+    if(HistoryBufferContains(&gRogueAdvPath.routeHistoryBuffer[0], ARRAY_COUNT(gRogueAdvPath.routeHistoryBuffer), routeId) && gSaveBlock2Ptr->optionsQuickRoute == OPTIONS_QUICKROUTE_OFF) // Keep normal behavior is said setting is off
     {
         // Don't repeat routes on same screen
         return 0;
+    }
+    
+    // Quick route only
+    // TODO(?) check if a type is already used perhaps? Not a thing here apparently since it only deals with whether the route is used or not
+    // Basegame already has duplicated types anyway. It's only more noticeable here due to the fact that we're limited with 6 maps
+    else if (HistoryBufferContains(&gRogueAdvPath.routeHistoryBuffer[0], ARRAY_COUNT(gRogueAdvPath.routeHistoryBuffer), routeId))
+    {
+         u8 quickRoutesUsedCount = 0;
+
+        for (u8 i = gRogueRouteTable.routeCount - 6; i < gRogueRouteTable.routeCount; ++i)
+        {
+            if (HistoryBufferContains(&gRogueAdvPath.routeHistoryBuffer[0], ARRAY_COUNT(gRogueAdvPath.routeHistoryBuffer), i))
+            {
+                quickRoutesUsedCount++;
+            }
+        }
+
+        // If all 6 quick routes are in use, allow reuse by returning 255
+        if (quickRoutesUsedCount >= 6)
+        {
+            return 255;
+        }
+        else
+        {
+            // If there are still unused quick routes, avoid repeating
+            return 0;
+        }
     }
 
     if(applyDelaySeeds)
@@ -5036,10 +5155,21 @@ u8 Rogue_SelectRouteRoom(u8 difficulty)
     RogueCustomQuery_Begin();
     {
         u16 i;
-        
-        for(i = 0; i < gRogueRouteTable.routeCount; ++i)
+
+        if (gSaveBlock2Ptr->optionsQuickRoute == OPTIONS_QUICKROUTE_ON)
         {
-            RogueMiscQuery_EditElement(QUERY_FUNC_INCLUDE, i);
+            for(i = gRogueRouteTable.routeCount - 6; i < gRogueRouteTable.routeCount; ++i) // To exclusively use quickmap
+            {
+                RogueMiscQuery_EditElement(QUERY_FUNC_INCLUDE, i);
+            }
+        }
+
+        else
+        {
+            for(i = 0; i < gRogueRouteTable.routeCount - 6; ++i) // To remove quickmap from default run
+            {
+                RogueMiscQuery_EditElement(QUERY_FUNC_INCLUDE, i);
+            }
         }
 
         RogueWeightQuery_Begin();
@@ -5273,6 +5403,9 @@ void Rogue_OnSetWarpData(struct WarpData *warp)
 
     FlagClear(FLAG_ROGUE_MAP_EVENT);
 
+    // Weird edge case fix for gyms
+    VarSet(VAR_ROGUE_ALWAYS_ZERO, 0);
+
     // Reset preview data
     memset(&gRogueLocal.encounterPreview[0], 0, sizeof(gRogueLocal.encounterPreview));
 
@@ -5302,6 +5435,7 @@ void Rogue_OnSetWarpData(struct WarpData *warp)
                 {
                     FlagSet(FLAG_ROGUE_DAYCARE_PHONE_CHARGED);
                     FlagSet(FLAG_ROGUE_COURIER_READY);
+                    FlagClear(FLAG_ROGUE_VENDING_MACHINE_USED);
                     TryRandomanSpawn(33);
                     break;
                 }
@@ -5481,6 +5615,12 @@ void Rogue_OnSetWarpData(struct WarpData *warp)
 
                 case ADVPATH_ROOM_BATTLE_SIM:
                 {
+                    break;
+                }
+
+                case ADVPATH_ROOM_GAMESHOW:
+                {
+                    FlagClear(FLAG_ROGUE_HIDE_GAMESHOW_REWARD);
                     break;
                 }
 
@@ -6464,6 +6604,8 @@ void Rogue_Battle_EndTrainerBattle(u16 trainerNum)
             Rogue_PushPopup_VictoryLapProgress(Rogue_GetTrainerTypeAssignment(trainerNum), gRogueRun.victoryLapTotalWins);
 
             VarSet(VAR_TEMP_1, gRogueRun.victoryLapTotalWins);
+            if(IsTerastallizeEnabled())
+                FlagSet(FLAG_ROGUE_TERA_ORB_CHARGED);
 
             if(gRogueRun.victoryLapTotalWins == 5)
             {
@@ -6804,8 +6946,8 @@ static void TryRestorePartyHeldItems(bool8 allowThief)
         {
             item = gRogueRun.partyHeldItems[i];
 
-            // Ignore fainted mons
-            if(GetMonData(&gPlayerParty[i], MON_DATA_HP) == 0)
+            // Ignore fainted mons, unless release fainted mon toggle is false
+            if(GetMonData(&gPlayerParty[i], MON_DATA_HP) == 0 && Rogue_ShouldReleaseFaintedMons())
                 continue;
 
             // We're still holding the same item no need to continue
@@ -7146,6 +7288,14 @@ void Rogue_ApplyMonCompetitiveSet(struct Pokemon* mon, u8 level, struct RoguePok
                 i = 0;
                 SetMonData(mon, MON_DATA_ABILITY_NUM, &i);
             }
+        }
+    }
+
+    // Lemon's nature fix
+    if(!rules->skipNature)
+    {
+        if (preset->nature) {
+            SetNature(mon, preset->nature);
         }
     }
 
@@ -7969,7 +8119,7 @@ void Rogue_ModifyWildMon(struct Pokemon* mon)
             u16 presetIndex;
             u16 presetCount = gRoguePokemonProfiles[species].competitiveSetCount;
             u16 statA = (Random() % 6);
-            u16 statB = (statA + 1 + (Random() % 5)) % 6;
+            //u16 statB = (statA + 1 + (Random() % 5)) % 6;
             u16 temp = 31;
 
             if(presetCount != 0)
@@ -7986,8 +8136,9 @@ void Rogue_ModifyWildMon(struct Pokemon* mon)
             SetMonData(mon, MON_DATA_FRIENDSHIP, &temp);
 
             // Bump 2 of the IVs to max
+            temp = 31;
             SetMonData(mon, MON_DATA_HP_IV + statA, &temp);
-            SetMonData(mon, MON_DATA_HP_IV + statB, &temp);
+            //SetMonData(mon, MON_DATA_HP_IV + statB, &temp);
 
             // Clear held item
             temp = 0;
@@ -8802,7 +8953,7 @@ void Rogue_CorrectBoxMonDetails(struct BoxPokemon* mon)
 
 static bool8 IsRareWeightedSpecies(u16 species)
 {
-    if(RoguePokedex_GetSpeciesBST(species) >= 500)
+    if(RoguePokedex_GetSpeciesBST(species) >= 570)
     {
         if(Rogue_GetMaxEvolutionCount(species) == 0)
             return TRUE;
@@ -8870,6 +9021,12 @@ static u8 RandomiseWildEncounters_CalculateWeight(u16 index, u16 species, void* 
     }
 
 #endif
+
+    if(RoguePokedex_IsSpeciesParadox(species))
+    {
+        if(Rogue_GetCurrentDifficulty() < ROGUE_GYM_MID_DIFFICULTY)
+            return 0;
+    }
 
     if(IsRareWeightedSpecies(species))
     {

@@ -895,6 +895,19 @@ void ItemUseOutOfBattle_GoldenSeed(u8 taskId)
     SetUpItemUseOnFieldCallback(taskId);
 }
 
+static void ItemUseOnFieldCB_PocketPC(u8 taskId)
+{
+    LockPlayerFieldControls();
+    ScriptContext_SetupScript(Rogue_EventScript_UsePocketPC);
+    DestroyTask(taskId);
+}
+
+void ItemUseOutOfBattle_PocketPC(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_PocketPC;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
 void ItemUseOutOfBattle_CoinCase(u8 taskId)
 {
     ConvertIntToDecimalStringN(gStringVar1, GetCoins(), STR_CONV_MODE_LEFT_ALIGN, 4);
@@ -1206,6 +1219,7 @@ void HandleUseExpiredLure(struct ScriptContext *ctx)
 
 extern const u8 gText_PokeblockHasNoEffect[];
 extern const u8 gText_PokeblockWouldHaveNoEffect[];
+extern const u8 gText_PokeblockWouldHaveNoEffectHoneyTree[];
 extern const u8 gText_PokeblockAlreadyScattered[];
 
 static void ItemUseOnFieldCB_Pokeblock(u8 taskId)
@@ -1234,6 +1248,8 @@ void ItemUseOutOfBattle_Pokeblock(u8 taskId)
         // Cannot scatter currently
         if(VarGet(VAR_ROGUE_ACTIVE_POKEBLOCK) != 0)
             DisplayItemMessage(taskId, FONT_NORMAL, gText_PokeblockAlreadyScattered, CloseItemMessage);
+        else if(gRogueAdvPath.currentRoomType == ADVPATH_ROOM_HONEY_TREE)
+            DisplayItemMessage(taskId, FONT_NORMAL, gText_PokeblockWouldHaveNoEffectHoneyTree, CloseItemMessage);
         else
             DisplayItemMessage(taskId, FONT_NORMAL, gText_PokeblockWouldHaveNoEffect, CloseItemMessage);
     }

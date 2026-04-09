@@ -291,6 +291,20 @@ script Rogue_Area_AdventureEntrance_SpeakNurse
                 }
             }
 
+            hubupgradeunlocked(HUB_UPGRADE_LAB_POCKET_PC)
+            if(var(VAR_RESULT) == TRUE)
+            {
+                checkitem(ITEM_POCKET_PC)
+
+                if(var(VAR_RESULT) == FALSE)
+                {
+                    msgbox(format("{PLAYER}!\pI have a package I was asked to hand to you."))
+                    msgbox(format("Oh?\nThere's a small package here with a note from Professor Fennel.\pIt reads…\p'Dear {PLAYER},\nI'm thrilled to present you with the Pocket PC!\pThis device lets you access your Pokémon storage from the hub - a little boost to keep things organized.\pDue to the complexity of Adventures, it won't work out in the field for now (it's still quite the mystery to us!), but I hope it helps you prep!\pBest of luck!\p - Fennel'"))
+                    giveitem(ITEM_POCKET_PC)
+                    call(Rogue_Common_DisplayPopups)
+                }
+            }
+
             special(Rogue_HasPendingQuestRewards)
             if(var(VAR_RESULT) == YES)
             {
@@ -391,8 +405,9 @@ script Rogue_StartAdventureInternal
         closemessage
 
         setvar(VAR_STARTER_SWAP_SPECIES, SPECIES_NONE)
-
-        if(!flag(FLAG_HIDE_STARTER_BAG))
+        
+        special(Mocha_SkipBagCheck)
+        if(!flag(FLAG_HIDE_STARTER_BAG) && var(VAR_RESULT) == FALSE)
         {
             applymovement(OBJ_EVENT_ADVENTURE_NURSE, Rogue_Adventure_WalkNurse)
             applymovement(OBJ_EVENT_ID_PLAYER, Rogue_Adventure_WalkPlayerStarter)
@@ -543,6 +558,22 @@ script Rogue_ReturnAdventureInternal
     {
         call(Common_EventScript_SaveGame)
     }
+
+    special(Rogue_ShouldNursePromptConfigLabSettingsChange)
+    if(var(VAR_RESULT) == YES)
+    {
+        msgbox(format("{PLAYER}, before you head off-"), MSGBOX_DEFAULT)
+
+        if(var(VAR_0x8004) == 1)
+        {
+            msgbox(format("I just wanted to remind you that you can adjust your Difficulty in the Config Lab to make it more of a Challenge if you'd like.\pYou can edit individual controls too, if you'd prefer to take smaller Difficulty steps rather than one giant leap."), MSGBOX_DEFAULT)
+        }
+        else
+        {
+            msgbox(format("I just wanted to remind you that you can adjust your Difficulty in the Config Lab to make it more manageable if you'd like.\pYou can edit individual controls too, if you'd prefer to take smaller Difficulty steps rather than one giant leap."), MSGBOX_DEFAULT)
+        }
+    }
+
     msgbox(format("Come speak to me, once you're ready for your next adventure."), MSGBOX_DEFAULT)
 
     releaseall
@@ -601,7 +632,9 @@ script Rogue_Area_AdventureEntrance_TalkFlag
     special(Rogue_IsMultiplayerClient)
     if(var(VAR_RESULT) == NO)
     {
-        if(flag(FLAG_ROGUE_MET_PEONIA))
+        special(Rogue_IsValidAdventureToReplay)
+    
+        if(var(VAR_RESULT) == YES)
         {
             if(flag(FLAG_ROGUE_ADVENTURE_REPLAY_ACTIVE))
             {
@@ -626,7 +659,14 @@ script Rogue_Area_AdventureEntrance_TalkFlag
         }
         else
         {
-            msgbox(format("I probably shouldn't touch this right now…"))
+            if(flag(FLAG_ROGUE_MET_PEONIA))
+            {
+                msgbox(format("No Adventure has currently, been remembered.\pSpeak to Peonia before raising this flag.\p(Remembered Adventures can be cleared between Updates)"))
+            }
+            else
+            {
+                msgbox(format("I probably shouldn't touch this right now…"))
+            }
         }
     }
 

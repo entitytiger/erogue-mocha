@@ -907,3 +907,15 @@ EventScript_VsSeekerChargingDone::
 	.include "data/maps/Rogue_Route_Sinnoh_MtCoronet/scripts.inc"
 
 	.include "data/maps/Rogue_Route_Sinnoh_IronIsland/scripts.inc"
+
+	.include "data/maps/Rogue_Route_QuickMap0/scripts.inc"
+
+	.include "data/maps/Rogue_Route_QuickMap1/scripts.inc"
+
+	.include "data/maps/Rogue_Route_QuickMap2/scripts.inc"
+
+	.include "data/maps/Rogue_Route_QuickMap3/scripts.inc"
+
+	.include "data/maps/Rogue_Route_QuickMap4/scripts.inc"
+
+	.include "data/maps/Rogue_Route_QuickMap5/scripts.inc"

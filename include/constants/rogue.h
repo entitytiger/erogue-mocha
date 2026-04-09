@@ -77,6 +77,7 @@
 #define ITEM_SMALL_COIN_CASE            (ITEM_ROGUE_ITEM_FIRST + 11)
 #define ITEM_LARGE_COIN_CASE            (ITEM_ROGUE_ITEM_FIRST + 12)
 #define ITEM_GOLDEN_SEED                (ITEM_ROGUE_ITEM_FIRST + 13)
+#define ITEM_POCKET_PC                  (ITEM_ROGUE_ITEM_FIRST + 14)
 
 // Free 10 - 19
 
@@ -628,7 +629,7 @@
 //
 #define MP_PLAYER_STATUS_NONE               0
 #define MP_PLAYER_STATUS_TALK_TO_PLAYER     1
-#define MP_PLAYER_STATUS_COUNT              2
+#define MP_PLAYER_STATUS_BEGIN_TRADE        2
 
 // Sound
 //
