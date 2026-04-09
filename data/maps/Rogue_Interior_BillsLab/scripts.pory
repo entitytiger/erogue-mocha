@@ -51,7 +51,7 @@ script Rogue_Interior_BillsLab_TalkBill
 
         switch(var(VAR_RESULT))
         {
-        if(var(VAR_RESULT) ==yes)
+        case YES
          {
             memset(&gRogueSaveBlock->dynamicUniquePokemon[0], 0, sizeof(struct UniqueMon) * DYNAMIC_UNIQUE_MON_COUNT);
             msgbox(format("Program is done! check the PC and you'll see new faces!"))
