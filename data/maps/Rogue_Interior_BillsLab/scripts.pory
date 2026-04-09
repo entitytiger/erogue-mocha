@@ -42,24 +42,7 @@ script Rogue_Interior_BillsLab_TalkBill
     else
     {
         msgbox(format("Hi {PLAYER}.\p Would you like to roll for new Unique Pokemon?"))   
-        showmoneybox(0, 0)
-        msgbox(format("For ¥5000 I'll run a program to search for new ones!"))
-        waitmessage
-  
-        multichoice(17, 6, YES, NO)
-        hidemoneybox
 
-        switch(var(VAR_RESULT))
-        {
-        if(var(VAR_RESULT) ==yes)
-         {
-            memset(&gRogueSaveBlock->dynamicUniquePokemon[0], 0, sizeof(struct UniqueMon) * DYNAMIC_UNIQUE_MON_COUNT);
-            msgbox(format("Program is done! check the PC and you'll see new faces!"))
-         }
-        else
-        msgbox(format("Alright, I'll be here if you change your mind!"))
-    case MULTI_B_PRESSED:
-        msgbox(format("Alright, I'll be here if you change your mind!"))
     }
 
     release
