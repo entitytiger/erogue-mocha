@@ -35,5 +35,3 @@ script Rogue_Area_SafariZone_BattleSummonMon
     waitstate
     return
 }
-    release
-}
