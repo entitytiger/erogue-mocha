@@ -51,7 +51,10 @@ script Rogue_Interior_BillsLab_TalkBill
         switch(var(VAR_RESULT))
         {
         case YES:
-       setvar(gSpecialVar_0x8004, 0)
+         if(gRogueSaveBlock->dynamicUniquePokemon[i].customMonId == customMonId)
+        {
+            memset(&gRogueSaveBlock->dynamicUniquePokemon[i], 0, sizeof(struct UniqueMon));
+        }
         case NO:
         msgbox(format("Alright, I will be here\n if you change your mind!"))
         case MULTI_B_PRESSED:
