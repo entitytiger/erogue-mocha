@@ -45,15 +45,19 @@ script Rogue_Interior_BillsLab_TalkBill
         msgbox(format("For ¥5000 I'll run a program\n to search for new ones!"))
         waitmessage
   
-        multichoice(20, 6, MULTI_YESNOINFO, NO)
+        multichoice(20, 6, MULTI_YESNO, NO)
         hidemoneybox
 
         switch(var(VAR_RESULT))
         {
-        case YES:
-         special(RogueGift_ClearDynamicCustomMons)
         case NO:
         msgbox(format("Alright, I will be here\n if you change your mind!"))
+        case YES:
+         checkmoney(5000)
+         special(RogueGift_ClearDynamicCustomMons)
+         msgbox(format("Alright, I ran the program!\p Good luck!"))
+         removemoney(5000)
+         updatemoneybox
         case MULTI_B_PRESSED:
          msgbox(format("Alright, I will be here\n if you change your mind!"))
     }
