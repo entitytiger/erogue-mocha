@@ -51,7 +51,7 @@ script Rogue_Interior_BillsLab_TalkBill
         switch(var(VAR_RESULT))
         {
         case YES:
-        memset(&gRogueSaveBlock->dynamicUniquePokemon[0], 0, sizeof(struct UniqueMon) * DYNAMIC_UNIQUE_MON_COUNT)
+         special(roguegift_cleardynamiccustommons)
         case NO:
         msgbox(format("Alright, I will be here\n if you change your mind!"))
         case MULTI_B_PRESSED:
