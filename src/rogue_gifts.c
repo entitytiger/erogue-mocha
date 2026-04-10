@@ -49,12 +49,12 @@ static u16 const sDynamicCustomMonAbilities[] =
 {
 #ifdef ROGUE_EXPANSION
     ABILITY_GOOD_AS_GOLD,
-    ABILITY_WATER_ABSORB,
-    ABILITY_VOLT_ABSORB,
+    ABILITY_STORM_DRAIN,
+    ABILITY_MOTOR_DRIVE,
     ABILITY_FLASH_FIRE,
     ABILITY_SPEED_BOOST,
     ABILITY_ADAPTABILITY,
-    ABILITY_INTIMIDATE,
+    ABILITY_TRIAGE,
     ABILITY_DRIZZLE,
     ABILITY_DROUGHT,
     ABILITY_SNOW_WARNING,
@@ -74,28 +74,24 @@ static u16 const sDynamicCustomMonAbilities[] =
     ABILITY_CONTRARY,
     ABILITY_NO_GUARD,
     ABILITY_SKILL_LINK,
-    ABILITY_MIRROR_ARMOR,
+    ABILITY_CORROSION,
     ABILITY_GUTS,
     ABILITY_THICK_FAT,
-    ABILITY_INTREPID_SWORD,
+    ABILITY_ICE_SCALES,
     ABILITY_SERENE_GRACE,
-    ABILITY_DAUNTLESS_SHIELD,
     ABILITY_WEAK_ARMOR,
     ABILITY_TOXIC_DEBRIS,
     ABILITY_QUICK_DRAW,
     ABILITY_GORILLA_TACTICS,
     ABILITY_TOUGH_CLAWS,
-    ABILITY_CLEAR_BODY,
     ABILITY_TECHNICIAN,
-    ABILITY_GUARD_DOG,
     ABILITY_PRANKSTER,
-    ABILITY_BEADS_OF_RUIN,
-    ABILITY_SWORD_OF_RUIN,
-    ABILITY_LEVITATE,
+    ABILITY_POWER_OF_ALCHEMY,
+    ABILITY_OPPORTUNIST,
+    ABILITY_EARTH_EATER,
     ABILITY_MULTISCALE,
     ABILITY_VESSEL_OF_RUIN,
     ABILITY_POISON_HEAL,
-    ABILITY_NEUROFORCE,
     ABILITY_MOODY,
     ABILITY_TABLETS_OF_RUIN,
     ABILITY_COMATOSE,
@@ -105,11 +101,27 @@ static u16 const sDynamicCustomMonAbilities[] =
     ABILITY_HARVEST,
     ABILITY_MOLD_BREAKER,
     ABILITY_SHEER_FORCE,
-    ABILITY_NATURAL_CURE,
-    ABILITY_ROUGH_SKIN,
+    ABILITY_TERA_SHELL,
     ABILITY_DEFIANT,
-    ABILITY_PERISH_BODY,
+    ABILITY_IMPOSTER,
     ABILITY_SNIPER,
+    ABILITY_MULTITYPE,
+    ABILITY_MAGIC_GUARD,
+    ABILITY_AERILATE,
+    ABILITY_PIXILATE,
+    ABILITY_GALVANIZE,
+    ABILITY_REFRIGERATE,
+#else
+    ABILITY_DRIZZLE,
+    ABILITY_SPEED_BOOST,
+    ABILITY_BATTLE_ARMOR,
+    ABILITY_LIMBER,
+    ABILITY_SAND_VEIL,
+    ABILITY_STATIC,
+    ABILITY_VOLT_ABSORB,
+    ABILITY_WATER_ABSORB,
+    ABILITY_CLOUD_NINE,
+    ABILITY_COMPOUND_EYES,
     ABILITY_COLOR_CHANGE,
     ABILITY_AERILATE,
     ABILITY_BAD_DREAMS,
@@ -182,7 +194,7 @@ static u16 const sDynamicCustomMonMoves[] =
 {
 #ifdef ROGUE_EXPANSION
     MOVE_HYDRO_STEAM,
-    MOVE_BOUNCY_BUBBLE,
+    MOVE_SHED_TAIL,
     MOVE_TORCH_SONG,
     MOVE_AQUA_STEP,
     MOVE_STONE_AXE,
@@ -190,10 +202,10 @@ static u16 const sDynamicCustomMonMoves[] =
     MOVE_SANDSEAR_STORM,
     MOVE_SURGING_STRIKES,
     MOVE_PARTING_SHOT,
-    MOVE_GRAV_APPLE,
-    MOVE_CORE_ENFORCER,
-    MOVE_THOUSAND_ARROWS,
-    MOVE_BURNING_BULWARK,
+    MOVE_GRASSY_GLIDE,
+    MOVE_DYNAMAX_CANNON,
+    MOVE_FICKLE_BEAM,
+    MOVE_BANEFUL_BUNKER,
     MOVE_DIAMOND_STORM,
     MOVE_MAGICAL_TORQUE,
     MOVE_FREEZE_DRY,
@@ -202,23 +214,23 @@ static u16 const sDynamicCustomMonMoves[] =
     MOVE_SECRET_SWORD,
     MOVE_TRICK_ROOM,
     MOVE_SPORE,
-    MOVE_NOXIOUS_TORQUE,
-    MOVE_TAIL_GLOW,
-    MOVE_SUPERPOWER,
-    MOVE_U_TURN,
-    MOVE_SHIFT_GEAR,
-    MOVE_TAKE_HEART,
+    MOVE_GUNK_SHOT,
+    MOVE_NASTY_PLOT,
     MOVE_FLOWER_TRICK,
-    MOVE_DOUBLE_IRON_BASH,
-    MOVE_CEASELESS_EDGE,
-    MOVE_COSMIC_POWER,
+    MOVE_U_TURN,
+    MOVE_VICTORY_DANCE,
+    MOVE_CALM_MIND,
+    MOVE_LEAF_BLADE,
+    MOVE_METEOR_MASH,
+    MOVE_KNOCK_OFF,
+    MOVE_SKILL_SWAP,
     MOVE_FAKE_OUT,
     MOVE_EXTREME_SPEED,
     MOVE_POWER_GEM,
     MOVE_RAPID_SPIN,
-    MOVE_LEECH_LIFE,
-    MOVE_SYNTHESIS,
-    MOVE_ELECTRO_DRIFT,
+    MOVE_DRAGON_ENERGY,
+    MOVE_WISH,
+    MOVE_THUNDER,
     MOVE_SWORDS_DANCE,
     MOVE_THUNDERCLAP,
     MOVE_GIGATON_HAMMER,
@@ -234,16 +246,49 @@ static u16 const sDynamicCustomMonMoves[] =
     MOVE_TOPSY_TURVY,
     MOVE_QUIVER_DANCE,
     MOVE_BATON_PASS,
-    MOVE_ASTRAL_BARRAGE,
-    MOVE_ARMOR_CANNON,
-    MOVE_POWER_TRIP,
-    MOVE_BOOMBURST,
+    MOVE_MOONGEIST_BEAM,
+    MOVE_MAGMA_STORM,
+    MOVE_THOUSAND_ARROWS,
+    MOVE_REVELATION_DANCE,
     MOVE_SUCKER_PUNCH,
     MOVE_COLLISION_COURSE,
-    MOVE_MIGHTY_CLEAVE,
-    MOVE_FIRST_IMPRESSION,
+    MOVE_ROLLOUT,
+    MOVE_BODY_PRESS,
     MOVE_RAGE_FIST,
     MOVE_ACROBATICS,
+    MOVE_DYNAMIC_PUNCH,
+    MOVE_ZAP_CANNON,
+    MOVE_INFERNO,
+    MOVE_MIND_BLOWN,
+    MOVE_STEEL_BEAM,
+    MOVE_BOOMBURST,
+    MOVE_MAKE_IT_RAIN,
+    MOVE_STORM_THROW,
+    MOVE_FROST_BREATH,
+    MOVE_SHELL_SMASH,
+    MOVE_STORED_POWER,
+    MOVE_POWER_TRIP,
+#else
+    MOVE_PAY_DAY,
+    MOVE_FIRE_PUNCH,
+    MOVE_ICE_PUNCH,
+    MOVE_THUNDER_PUNCH,
+    MOVE_SWORDS_DANCE,
+    MOVE_FLY,
+    MOVE_BODY_SLAM,
+    MOVE_SURF,
+    MOVE_ICE_BEAM,
+    MOVE_COUNTER,
+    MOVE_DRAGON_RAGE,
+    MOVE_EARTHQUAKE,
+    MOVE_PSYCHIC,
+    MOVE_METRONOME,
+    MOVE_MIRROR_MOVE,
+    MOVE_FIRE_BLAST,
+    MOVE_SOFT_BOILED,
+    MOVE_TRANSFORM,
+    MOVE_SUBSTITUTE,
+    MOVE_CURSE,
     MOVE_AEROBLAST,
     MOVE_APPLE_ACID,
     MOVE_AURORA_VEIL,
@@ -311,18 +356,17 @@ static u16 const sDynamicCustomMonMoves[] =
 #endif
 };
 
-STATIC_ASSERT(ARRAY_COUNT(sDynamicCustomMonAbilities) <= 127, SizeOfDynamicCustomMonAbilities);
-STATIC_ASSERT(ARRAY_COUNT(sDynamicCustomMonMoves) <= 127, SizeOfDynamicCustomMonMoves);
+STATIC_ASSERT(ARRAY_COUNT(sDynamicCustomMonAbilities) <= 63, SizeOfDynamicCustomMonAbilities);
+STATIC_ASSERT(ARRAY_COUNT(sDynamicCustomMonMoves) <= 255, SizeOfDynamicCustomMonMoves);
 
 #include "data/rogue/custom_mons.h"
 
 struct CompressedDynamicData
 {
-    u32 move1:7; // 127 indices
-    u32 move2:7; // 127 indices
-    u32 move3:7; // 127 indices
-    u32 unused:2; // 127 indices
-    u32 ability:7; // 127 indices
+    u32 move1:8; // 255 indices
+    u32 move2:8; // 255 indices
+    u32 move3:8; // 255 indices
+    u32 ability:6; // 63 indices
     u32 reserved:2; // reserved for bitmask OTID_FLAG_CUSTOM_MON etc.
 };
 
@@ -899,24 +943,38 @@ static u8 RandomRarity()
 {
     u8 rarity;
 
-    switch (Random() % 7)
+    switch (Random() % 21)
     {
     case 0:
-        rarity = UNIQUE_RARITY_EXOTIC;
+    case 19:
+    case 20:
+        rarity = UNIQUE_RARITY_EPIC;
         break;
 
     case 1:
     case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
         rarity = UNIQUE_RARITY_EPIC;
         break;
 
-    case 3:
-    case 4:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
         rarity = UNIQUE_RARITY_RARE;
         break;
     
-    case 5:
-    case 6:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+    case 17:
+    case 18:
         rarity = UNIQUE_RARITY_COMMON;
         break;
 
@@ -1025,7 +1083,8 @@ void RogueGift_EnsureDynamicCustomMonsAreValid()
         RogueMonQuery_Begin();
         RogueMonQuery_IsSpeciesActive();
         RogueMonQuery_TransformIntoEggSpecies();
-        RogueMonQuery_IsLegendary(QUERY_FUNC_EXCLUDE);
+        RogueMonQuery_IsLegendaryImpossibleToEncounter(QUERY_FUNC_EXCLUDE);
+        //RogueMonQuery_IsLegendary(QUERY_FUNC_EXCLUDE);
         
         for(i = 0; i < DYNAMIC_UNIQUE_MON_COUNT; ++i)
         {

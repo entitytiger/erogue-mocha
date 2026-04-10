@@ -34,17 +34,35 @@ script Rogue_Interior_BillsLab_TalkBill
 {
     lock
     faceplayer
-
     if(var(VAR_RUN_TUTORIAL) == 2)
     {
-        msgbox(format("Just walk right up to the PC and you'll be able to see which Unique Pokémon it is currently tracking!"))
+        msgbox(format("Just walk right up to the PC and\n you'll be able to see which\n Unique Pokémon it is\n currently tracking!"))
     }
     else
     {
-        msgbox(format("Hi {PLAYER}.\pI'm still tracking plenty of Unique Pokémon, so no reason to slow down now!"))
-    }
+        msgbox(format("Hi {PLAYER}.\p Would you like to\n roll for new Unique Pokemon?"))         
+        showmoneybox(0, 0)
+        msgbox(format("For ¥5000 I'll run a program\n to search for new ones!"))
+        waitmessage
+  
+        multichoice(20, 6, MULTI_YESNO, NO)
+        hidemoneybox
 
+        switch(var(VAR_RESULT))
+        {
+        case 0:
+         checkmoney(5000)
+         special(RogueGift_ClearDynamicCustomMons)
+         msgbox(format("Alright, I ran the program!\p Good luck!"))
+         removemoney(5000)
+         updatemoneybox
+        case MULTI_B_PRESSED:
+         msgbox(format("Alright, I will be here\n if you change your mind!"))
+        case 1:
+        msgbox(format("Alright, I will be here\n if you change your mind!"))
+    }
     release
+  }
 }
 
 script Rogue_Interior_BillsLab_TalkPC
