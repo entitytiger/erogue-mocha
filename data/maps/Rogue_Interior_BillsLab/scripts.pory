@@ -45,7 +45,7 @@ script Rogue_Interior_BillsLab_TalkBill
         msgbox(format("For ¥5000 I'll run a program\n to search for new ones!"))
         waitmessage
   
-        multichoice(17, 6, YES, NO)
+        multichoice(20, 6, MULTI_YESNOINFO, NO)
         hidemoneybox
 
         switch(var(VAR_RESULT))
