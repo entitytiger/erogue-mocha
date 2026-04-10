@@ -56,8 +56,6 @@ script Rogue_Interior_BillsLab_TalkBill
          }
         else
         msgbox(format("Alright, I will be here\n if you change your mind!"))
-    case MULTI_B_PRESSED:
-        msgbox(format("Alright, I will be here\n if you change your mind!"))
     }
     release
   }
